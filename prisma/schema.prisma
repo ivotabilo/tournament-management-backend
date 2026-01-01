@@ -1,0 +1,170 @@
+// ==========================
+// GENERATOR & DATASOURCE
+// ==========================
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "binary"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================
+// USUARIO
+// ==========================
+model Usuario {
+  id       Int      @id @default(autoincrement())
+  email    String   @unique
+  password String
+  role     UserRole @default(CAPTAIN)
+
+  // Relación 1–1 con Equipo (capitán)
+  equipoId Int?     @unique
+  equipo   Equipo?  @relation("CapitanEquipo", fields: [equipoId], references: [id])
+}
+
+// ==========================
+// EQUIPO
+// ==========================
+model Equipo {
+  id      Int    @id @default(autoincrement())
+  nombre  String @unique
+  tag     String
+  logoUrl String?
+
+  // Capitán
+  capitan Usuario? @relation("CapitanEquipo")
+
+  // Relaciones
+  jugadores Jugador[]
+
+  partidosA Partido[] @relation("EquipoA")
+  partidosB Partido[] @relation("EquipoB")
+  partidosGanados Partido[] @relation("EquipoGanador")
+
+  tablaPosiciones TablaPosiciones[]
+}
+
+// ==========================
+// JUGADOR
+// ==========================
+model Jugador {
+  id      Int    @id @default(autoincrement())
+  nombre  String
+  usuario String
+  rol     Rol
+
+  equipoId Int?
+  equipo   Equipo? @relation(fields: [equipoId], references: [id])
+
+  estadisticas EstadisticaJugador[]
+}
+
+// ==========================
+// TORNEO
+// ==========================
+model Torneo {
+  id     Int    @id @default(autoincrement())
+  nombre String
+
+  partidos        Partido[]
+  tablaPosiciones TablaPosiciones[]
+}
+
+// ==========================
+// PARTIDO
+// ==========================
+model Partido {
+  id       Int      @id @default(autoincrement())
+  fecha    DateTime @default(now())
+
+  torneoId Int
+  torneo   Torneo @relation(fields: [torneoId], references: [id])
+
+  equipoAId Int
+  equipoBId Int
+  ganadorId Int?
+
+  scoreEquipoA Int?
+  scoreEquipoB Int?
+  empate       Boolean @default(false)
+
+  equipoA Equipo @relation("EquipoA", fields: [equipoAId], references: [id])
+  equipoB Equipo @relation("EquipoB", fields: [equipoBId], references: [id])
+  ganador Equipo? @relation("EquipoGanador", fields: [ganadorId], references: [id])
+
+  estadisticas EstadisticaJugador[]
+}
+
+// ==========================
+// ESTADÍSTICAS POR JUGADOR
+// ==========================
+model EstadisticaJugador {
+  id Int @id @default(autoincrement())
+
+  partidoId Int
+  jugadorId Int
+
+  kills       Int @default(0)
+  muertes     Int @default(0)
+  asistencias Int @default(0)
+
+  // Snapshot SOLO del partido
+  kda Float?
+
+  partido Partido @relation(fields: [partidoId], references: [id])
+  jugador Jugador @relation(fields: [jugadorId], references: [id])
+
+  @@unique([partidoId, jugadorId])
+}
+
+// ==========================
+// TABLA DE POSICIONES
+// ==========================
+model TablaPosiciones {
+  id Int @id @default(autoincrement())
+
+  torneoId Int
+  equipoId Int
+  puntos   Int @default(0)
+  estado   EstadoEquipo @default(EN_PIE) // EN_PIE o FUERA
+
+  torneo Torneo @relation(fields: [torneoId], references: [id])
+  equipo  Equipo @relation(fields: [equipoId], references: [id])
+
+  @@unique([torneoId, equipoId])
+}
+
+// ==========================
+// MAPAS (para baneos y rotación)
+// ==========================
+model Mapa {
+  id      Int    @id @default(autoincrement())
+  nombre  String @unique
+  imagen  String
+  activo  Boolean @default(true)
+}
+
+// ==========================
+// ENUMS
+// ==========================
+enum UserRole {
+  ADMIN
+  CAPTAIN
+}
+
+enum Rol {
+  TITULAR
+  SUPLENTE
+  COACH
+}
+
+enum EstadoEquipo {
+  EN_PIE
+  FUERA
+}
+
+
+
