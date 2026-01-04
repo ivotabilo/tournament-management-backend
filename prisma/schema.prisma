@@ -29,10 +29,13 @@ model Usuario {
 // EQUIPO
 // ==========================
 model Equipo {
-  id      Int    @id @default(autoincrement())
-  nombre  String @unique
+  id      Int     @id @default(autoincrement())
+  nombre  String  @unique
   tag     String
   logoUrl String?
+
+  // ESTADO INDIVIDUAL: Cada capitán confirma su propio equipo
+  confirmado Boolean @default(false)
 
   // Capitán
   capitan Usuario? @relation("CapitanEquipo")
@@ -40,8 +43,8 @@ model Equipo {
   // Relaciones
   jugadores Jugador[]
 
-  partidosA Partido[] @relation("EquipoA")
-  partidosB Partido[] @relation("EquipoB")
+  partidosA       Partido[] @relation("EquipoA")
+  partidosB       Partido[] @relation("EquipoB")
   partidosGanados Partido[] @relation("EquipoGanador")
 
   tablaPosiciones TablaPosiciones[]
@@ -69,6 +72,10 @@ model Torneo {
   id     Int    @id @default(autoincrement())
   nombre String
 
+  // REGLAS GLOBALES ACTUALIZADAS
+  fechaCierreInscripcion DateTime? // Límite para que nuevos equipos se unan
+  fechaLimiteGestion     DateTime? // Límite para editar plantilla Y confirmar participación
+
   partidos        Partido[]
   tablaPosiciones TablaPosiciones[]
 }
@@ -77,8 +84,8 @@ model Torneo {
 // PARTIDO
 // ==========================
 model Partido {
-  id       Int      @id @default(autoincrement())
-  fecha    DateTime @default(now())
+  id    Int      @id @default(autoincrement())
+  fecha DateTime @default(now())
 
   torneoId Int
   torneo   Torneo @relation(fields: [torneoId], references: [id])
@@ -91,8 +98,8 @@ model Partido {
   scoreEquipoB Int?
   empate       Boolean @default(false)
 
-  equipoA Equipo @relation("EquipoA", fields: [equipoAId], references: [id])
-  equipoB Equipo @relation("EquipoB", fields: [equipoBId], references: [id])
+  equipoA Equipo  @relation("EquipoA", fields: [equipoAId], references: [id])
+  equipoB Equipo  @relation("EquipoB", fields: [equipoBId], references: [id])
   ganador Equipo? @relation("EquipoGanador", fields: [ganadorId], references: [id])
 
   estadisticas EstadisticaJugador[]
@@ -128,23 +135,23 @@ model TablaPosiciones {
 
   torneoId Int
   equipoId Int
-  puntos   Int @default(0)
+  puntos   Int          @default(0)
   estado   EstadoEquipo @default(EN_PIE) // EN_PIE o FUERA
 
   torneo Torneo @relation(fields: [torneoId], references: [id])
-  equipo  Equipo @relation(fields: [equipoId], references: [id])
+  equipo Equipo @relation(fields: [equipoId], references: [id])
 
   @@unique([torneoId, equipoId])
 }
 
 // ==========================
-// MAPAS (para baneos y rotación)
+// MAPAS
 // ==========================
 model Mapa {
-  id      Int    @id @default(autoincrement())
-  nombre  String @unique
-  imagen  String
-  activo  Boolean @default(true)
+  id     Int     @id @default(autoincrement())
+  nombre String  @unique
+  imagen String
+  activo Boolean @default(true)
 }
 
 // ==========================

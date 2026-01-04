@@ -2,7 +2,7 @@
 import { prisma } from '../prismaClient.js';
 import bcrypt from 'bcrypt';
 
-// ⚡ Registrar equipo y capitán con Cloudinary
+// ⚡ Registrar equipo y capitán con Inscripción Automática al Torneo
 export const registerTeamAndCapitan = async (teamData: any, logoUrl: string) => {
   const { teamName, teamTag, captainEmail, captainPassword, players, coach, substitutes } = teamData;
 
@@ -11,6 +11,7 @@ export const registerTeamAndCapitan = async (teamData: any, logoUrl: string) => 
 
   const emailNormalized = captainEmail.trim().toLowerCase();
 
+  // Validaciones previas
   const existingTeam = await prisma.equipo.findUnique({ where: { nombre: teamName } });
   if (existingTeam) throw { field: 'teamName', message: 'Ya existe un equipo con ese nombre.' };
 
@@ -20,15 +21,36 @@ export const registerTeamAndCapitan = async (teamData: any, logoUrl: string) => 
   const hashedPassword = await bcrypt.hash(captainPassword, 10);
 
   const result = await prisma.$transaction(async (tx) => {
-    // ⚡ Guardar la URL de Cloudinary directamente
+    // 1. BUSCAR EL TORNEO ACTIVO (Para inscripción automática)
+    const torneoActivo = await tx.torneo.findFirst({
+      orderBy: { id: 'desc' } // Toma el último creado (ej: Disclash2026)
+    });
+
+    if (!torneoActivo) {
+      throw new Error('No hay ningún torneo activo para inscribirse.');
+    }
+
+    // 2. CREAR EL EQUIPO
     const equipo = await tx.equipo.create({
       data: { nombre: teamName, tag: teamTag, logoUrl: logoUrl },
     });
 
+    // 3. VINCULACIÓN AUTOMÁTICA (Tabla de Posiciones / Lista de Inscritos)
+    await tx.tablaPosiciones.create({
+      data: {
+        equipoId: equipo.id,
+        torneoId: torneoActivo.id,
+        puntos: 0,
+        estado: 'EN_PIE'
+      }
+    });
+
+    // 4. CREAR EL CAPITÁN
     const capitan = await tx.usuario.create({
       data: { email: emailNormalized, password: hashedPassword, role: 'CAPTAIN', equipoId: equipo.id },
     });
 
+    // 5. CREAR JUGADORES (TITULARES)
     for (const player of players || []) {
       if (!player.name) continue;
       await tx.jugador.create({
@@ -36,12 +58,14 @@ export const registerTeamAndCapitan = async (teamData: any, logoUrl: string) => 
       });
     }
 
+    // 6. CREAR COACH
     if (coach?.name) {
       await tx.jugador.create({
         data: { nombre: coach.name, usuario: coach.name, rol: 'COACH', equipoId: equipo.id },
       });
     }
 
+    // 7. CREAR SUPLENTES
     for (const sub of substitutes || []) {
       if (!sub.name) continue;
       await tx.jugador.create({
@@ -55,40 +79,39 @@ export const registerTeamAndCapitan = async (teamData: any, logoUrl: string) => 
   return result;
 };
 
-// ⚡ Obtener equipos con puntos actualizados automáticamente
+// ⚡ Obtener equipos con puntos de un torneo específico
 export const getTeamsWithPoints = async (torneoId?: number) => {
-  // Armar include dinámico para evitar error TS
-  const includeTablaPosiciones = torneoId
-    ? { tablaPosiciones: { where: { torneoId }, select: { puntos: true } } }
-    : { tablaPosiciones: { select: { puntos: true } } };
+  // Si no se pasa un torneoId, buscamos el último activo
+  let targetTorneoId = torneoId;
+  if (!targetTorneoId) {
+    const ultimoTorneo = await prisma.torneo.findFirst({ orderBy: { id: 'desc' } });
+    targetTorneoId = ultimoTorneo?.id;
+  }
 
   const equipos = await prisma.equipo.findMany({
-    include: includeTablaPosiciones,
+    include: {
+      tablaPosiciones: {
+        where: { torneoId: targetTorneoId },
+        select: { puntos: true }
+      }
+    },
   });
 
-  // Calcular puntos automáticamente si no hay partidos jugados
-  // ⚡ 2 puntos por victoria
-  return equipos.map((e) => {
-    const puntos = e.tablaPosiciones.length > 0
-      ? e.tablaPosiciones[0].puntos
-      : 0; // si no hay tabla, 0 puntos
-
-    return {
-      id: e.id,
-      nombre: e.nombre,
-      tag: e.tag,
-      // ⚡ Aquí ya viene la URL de Cloudinary desde el frontend (upload)
-      logoUrl: e.logoUrl || null,
-      points: puntos,
-    };
-  });
+  return equipos.map((e) => ({
+    id: e.id,
+    nombre: e.nombre,
+    tag: e.tag,
+    logoUrl: e.logoUrl || null,
+    points: e.tablaPosiciones.length > 0 ? e.tablaPosiciones[0].puntos : 0,
+  }));
 };
+
 // ⚡ LEER: Obtener equipo con Roster completo
 export const getEquipoById = async (id: number) => {
   return await prisma.equipo.findUnique({
     where: { id },
     include: {
-      jugadores: true, // Esto trae a los 5 titulares, 2 suplentes y coach
+      jugadores: true,
       capitan: {
         select: { email: true, role: true }
       }
@@ -96,22 +119,37 @@ export const getEquipoById = async (id: number) => {
   });
 };
 
-// ⚡ EDITAR: Actualización masiva (Nombre, Tag, Logo y Roster)
+// ⚡ EDITAR: Actualización masiva con validación de fecha de Torneo
 export const updateEquipoCompleto = async (equipoId: number, data: any) => {
   const { nombre, tag, logoUrl, jugadores } = data;
 
   return await prisma.$transaction(async (tx) => {
-    // 1. Actualizar datos base del equipo
+    // 1. VALIDACIÓN DE FECHA LÍMITE (Gestionar plantilla)
+    const inscripcion = await tx.tablaPosiciones.findFirst({
+      where: { equipoId },
+      include: { 
+        torneo: true 
+      }
+    });
+
+    if (inscripcion?.torneo?.fechaLimiteGestion) {
+      const ahora = new Date();
+      if (ahora > inscripcion.torneo.fechaLimiteGestion) {
+        throw new Error("El periodo de edición y confirmación ha finalizado.");
+      }
+    }
+
+    // 2. Actualizar datos base del equipo
     const equipoActualizado = await tx.equipo.update({
       where: { id: equipoId },
       data: { 
         nombre, 
         tag, 
-        logoUrl: logoUrl || undefined // Solo actualiza si hay una URL nueva
+        logoUrl: logoUrl || undefined 
       },
     });
 
-    // 2. Actualizar cada jugador individualmente
+    // 3. Actualizar jugadores uno por uno
     if (jugadores && jugadores.length > 0) {
       for (const j of jugadores) {
         await tx.jugador.update({
