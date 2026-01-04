@@ -83,6 +83,51 @@ export const getTeamsWithPoints = async (torneoId?: number) => {
     };
   });
 };
+// ⚡ LEER: Obtener equipo con Roster completo
+export const getEquipoById = async (id: number) => {
+  return await prisma.equipo.findUnique({
+    where: { id },
+    include: {
+      jugadores: true, // Esto trae a los 5 titulares, 2 suplentes y coach
+      capitan: {
+        select: { email: true, role: true }
+      }
+    }
+  });
+};
+
+// ⚡ EDITAR: Actualización masiva (Nombre, Tag, Logo y Roster)
+export const updateEquipoCompleto = async (equipoId: number, data: any) => {
+  const { nombre, tag, logoUrl, jugadores } = data;
+
+  return await prisma.$transaction(async (tx) => {
+    // 1. Actualizar datos base del equipo
+    const equipoActualizado = await tx.equipo.update({
+      where: { id: equipoId },
+      data: { 
+        nombre, 
+        tag, 
+        logoUrl: logoUrl || undefined // Solo actualiza si hay una URL nueva
+      },
+    });
+
+    // 2. Actualizar cada jugador individualmente
+    if (jugadores && jugadores.length > 0) {
+      for (const j of jugadores) {
+        await tx.jugador.update({
+          where: { id: j.id },
+          data: {
+            nombre: j.nombre,
+            usuario: j.usuario,
+            rol: j.rol 
+          }
+        });
+      }
+    }
+
+    return equipoActualizado;
+  });
+};
 
 
 
