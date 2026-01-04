@@ -1,10 +1,9 @@
 import { Router } from 'express';
 import { loginController } from '../controllers/auth.controller.js';
 import { verificarToken } from '../middlewares/auth.middleware.js'; // El vigilante
-import { PrismaClient } from '@prisma/client'; // Para buscar al usuario real
+import { prisma } from '../prismaClient.js'; // CAMBIO: Ahora importa la instancia global
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // RUTA PÚBLICA (Ya la tenías)
 router.post('/login', loginController);
