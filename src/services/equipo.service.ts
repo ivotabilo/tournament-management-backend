@@ -128,10 +128,16 @@ export const getEquipoById = async (id: number) => {
 export const updateEquipoCompleto = async (equipoId: number, data: any) => {
   const { nombre, tag, logoUrl, jugadores } = data;
 
-  // --- ÚNICA ADICIÓN: VALIDACIÓN DE TAG ---
-  if (tag && (tag.trim().length < 2 || tag.trim().length > 3)) {
-    throw new Error("El tag debe tener entre 2 y 3 caracteres. Ejemplo: [WIN]");
+// --- VALIDACIÓN DE TAG EN EDICIÓN ---
+if (tag) {
+  const cleanTag = tag.trim();
+  if (cleanTag.length < 2 || cleanTag.length > 3) {
+    throw { 
+      field: 'teamTag', 
+      message: 'El tag debe tener 2 o 3 caracteres. ¡Elige uno corto y potente! 🎮' 
+    };
   }
+}
   // ----------------------------------------
 
   return await prisma.$transaction(async (tx) => {
