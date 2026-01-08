@@ -124,18 +124,16 @@ export const updateEquipoCompleto = async (equipoId: number, data: any) => {
   const { nombre, tag, logoUrl, jugadores } = data;
 
   return await prisma.$transaction(async (tx) => {
-    // 1. VALIDACIÓN DE FECHA LÍMITE (Gestionar plantilla)
+    // 1. VALIDACIÓN DE FECHA LÍMITE
     const inscripcion = await tx.tablaPosiciones.findFirst({
       where: { equipoId },
-      include: { 
-        torneo: true 
-      }
+      include: { torneo: true }
     });
 
     if (inscripcion?.torneo?.fechaLimiteGestion) {
       const ahora = new Date();
       if (ahora > inscripcion.torneo.fechaLimiteGestion) {
-        throw new Error("El periodo de edición y confirmación ha finalizado.");
+        throw new Error("El periodo de edición ha finalizado.");
       }
     }
 
@@ -149,25 +147,36 @@ export const updateEquipoCompleto = async (equipoId: number, data: any) => {
       },
     });
 
-    // 3. Actualizar jugadores uno por uno
+    // 3. LÓGICA UPSERT PARA JUGADORES
     if (jugadores && jugadores.length > 0) {
       for (const j of jugadores) {
-        await tx.jugador.update({
-          where: { id: j.id },
-          data: {
-            nombre: j.nombre,
-            usuario: j.usuario,
-            rol: j.rol 
-          }
-        });
+        // Si el nombre está vacío, no lo guardamos (opcional, según tu preferencia)
+        if (!j.nombre || j.nombre.trim() === "") continue;
+
+        if (j.id && !String(j.id).startsWith('temp')) {
+          // Si tiene un ID real, actualizamos
+          await tx.jugador.update({
+            where: { id: Number(j.id) },
+            data: {
+              nombre: j.nombre,
+              usuario: j.nombre, // Sincronizamos usuario con nombre
+              rol: j.rol 
+            }
+          });
+        } else {
+          // Si NO tiene ID o es un ID temporal ("temp-..."), lo CREAMOS
+          await tx.jugador.create({
+            data: {
+              nombre: j.nombre,
+              usuario: j.nombre,
+              rol: j.rol,
+              equipoId: equipoId
+            }
+          });
+        }
       }
     }
 
     return equipoActualizado;
   });
 };
-
-
-
-
-
