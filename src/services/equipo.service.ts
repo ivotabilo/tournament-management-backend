@@ -179,6 +179,7 @@ export const getEquipoById = async (id: number) => {
 export const updateEquipoCompleto = async (equipoId: number, data: any) => {
   const { nombre, tag, logoUrl, jugadores } = data;
 
+  // --- VALIDACIÓN DE TAG EN EDICIÓN ---
   if (tag) {
     const cleanTag = tag.trim();
     if (cleanTag.length < 2 || cleanTag.length > 3) {
@@ -203,22 +204,22 @@ export const updateEquipoCompleto = async (equipoId: number, data: any) => {
       }
     }
 
-    // --- 🚀 SOLUCIÓN AL PROBLEMA DE PERSISTENCIA ---
-    // Paso A: Identificar los IDs que el usuario quiere MANTENER (que tienen nombre y no son temporales)
-    const idsParaMantener = jugadores
-      .filter((j: any) => j.id && !String(j.id).startsWith('temp') && j.nombre?.trim() !== "")
-      .map((j: any) => Number(j.id));
+    // --- 🚀 PASO DE SINCRONIZACIÓN: ELIMINAR LOS QUE YA NO ESTÁN ---
+    if (jugadores) {
+      // Obtenemos los IDs de los jugadores que el capitán MANTUVO en el formulario
+      const idsQueSeQuedan = jugadores
+        .filter((j: any) => j.id && !String(j.id).startsWith('temp') && j.nombre?.trim() !== "")
+        .map((j: any) => Number(j.id));
 
-    // Paso B: Eliminar de la base de datos a cualquier jugador que:
-    // 1. Pertenezca a este equipo.
-    // 2. NO esté en la lista de los que se quedan (porque el usuario borró su nombre o lo quitó).
-    await tx.jugador.deleteMany({
-      where: {
-        equipoId: equipoId,
-        id: { notIn: idsParaMantener }
-      }
-    });
-    // ------------------------------------------------
+      // Eliminamos de la DB a cualquier jugador de este equipo que NO esté en la lista enviada
+      // Esto permite que si el capitán borra un nombre, el jugador desaparezca de la base de datos
+      await tx.jugador.deleteMany({
+        where: {
+          equipoId: equipoId,
+          id: { notIn: idsQueSeQuedan }
+        }
+      });
+    }
 
     // 2. Actualizar datos base del equipo
     const equipoActualizado = await tx.equipo.update({
@@ -233,7 +234,7 @@ export const updateEquipoCompleto = async (equipoId: number, data: any) => {
     // 3. LÓGICA UPSERT PARA JUGADORES
     if (jugadores && jugadores.length > 0) {
       for (const j of jugadores) {
-        // Si el nombre está vacío, lo ignoramos (el deleteMany ya lo borró de la DB)
+        // Si el nombre está vacío, lo saltamos (ya se encargó el deleteMany de arriba)
         if (!j.nombre || j.nombre.trim() === "") continue;
 
         if (j.id && !String(j.id).startsWith('temp')) {
@@ -246,7 +247,6 @@ export const updateEquipoCompleto = async (equipoId: number, data: any) => {
             }
           });
         } else {
-          // Si es un nombre nuevo (temp o sin id) y no está vacío, lo creamos
           await tx.jugador.create({
             data: {
               nombre: j.nombre,
