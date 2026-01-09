@@ -9,6 +9,7 @@ import {
   editarMiEquipo 
 } from "../controllers/equipo.controller.js";
 import { verificarToken } from '../middlewares/auth.middleware.js';
+import { confirmarEmail } from "../controllers/equipo.controller.js";
 
 const router = Router();
 
@@ -32,7 +33,9 @@ const storage = new CloudinaryStorage({
 });
 
 const upload = multer({ storage });
-
+// --- RUTA DE VERIFICACIÓN ---
+// Esta es la que recibe el clic del mail
+router.get("/confirmar", confirmarEmail);
 // 3. Definir rutas
 
 // --- RUTAS PÚBLICAS ---

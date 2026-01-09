@@ -1,5 +1,16 @@
 import { prisma } from '../prismaClient.js';
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
+import nodemailer from 'nodemailer'; // ✅ Reemplazado Resend por Nodemailer
+
+// ✅ Configuración del motor de envío (Gmail)
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
 
 // ⚡ Registrar equipo y capitán con Inscripción Automática al Torneo
 export const registerTeamAndCapitan = async (teamData: any, logoUrl: string) => {
@@ -15,6 +26,9 @@ export const registerTeamAndCapitan = async (teamData: any, logoUrl: string) => 
   // ----------------------------------------
 
   const emailNormalized = captainEmail.trim().toLowerCase();
+
+  // 🛡️ GENERAR TOKEN DE VERIFICACIÓN
+  const verificationToken = crypto.randomUUID();
 
   // Validaciones previas
   const existingTeam = await prisma.equipo.findUnique({ where: { nombre: teamName } });
@@ -50,9 +64,16 @@ export const registerTeamAndCapitan = async (teamData: any, logoUrl: string) => 
       }
     });
 
-    // 4. CREAR EL CAPITÁN
+    // 4. CREAR EL CAPITÁN (Incluyendo isVerified y Token)
     const capitan = await tx.usuario.create({
-      data: { email: emailNormalized, password: hashedPassword, role: 'CAPTAIN', equipoId: equipo.id },
+      data: { 
+        email: emailNormalized, 
+        password: hashedPassword, 
+        role: 'CAPTAIN', 
+        equipoId: equipo.id,
+        isVerified: false,
+        verificationToken: verificationToken
+      },
     });
 
     // 5. CREAR JUGADORES (TITULARES)
@@ -81,12 +102,35 @@ export const registerTeamAndCapitan = async (teamData: any, logoUrl: string) => 
     return { team: equipo, capitan };
   });
 
+  // 📧 ENVÍO DE EMAIL CON GMAIL (NODEMAILER)
+  try {
+    const confirmLink = `${process.env.NEXT_PUBLIC_API_URL}/equipos/confirmar?token=${verificationToken}`;
+    
+    await transporter.sendMail({
+      from: `"Torneo Valorant" <${process.env.EMAIL_USER}>`,
+      to: emailNormalized,
+      subject: '📧 Verifica tu correo - Inscripción Torneo',
+      html: `
+        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px; max-width: 500px; margin: auto;">
+          <h2 style="color: #ff4655;">¡Hola Capitán!</h2>
+          <p>Has registrado al equipo <strong>${teamName}</strong> satisfactoriamente.</p>
+          <p>Para confirmar tu inscripción y aparecer en la tabla oficial, haz clic en el botón:</p>
+          <a href="${confirmLink}" 
+             style="background: #ff4655; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
+            VERIFICAR MI CORREO
+          </a>
+        </div>
+      `
+    });
+  } catch (error) {
+    console.error("Error enviando email con Gmail:", error);
+  }
+
   return result;
 };
 
-// ⚡ Obtener equipos con puntos de un torneo específico
+// ⚡ Obtener equipos con puntos de un torneo específico (FILTRADO POR VERIFICACIÓN)
 export const getTeamsWithPoints = async (torneoId?: number) => {
-  // Si no se pasa un torneoId, buscamos el último activo
   let targetTorneoId = torneoId;
   if (!targetTorneoId) {
     const ultimoTorneo = await prisma.torneo.findFirst({ orderBy: { id: 'desc' } });
@@ -94,6 +138,11 @@ export const getTeamsWithPoints = async (torneoId?: number) => {
   }
 
   const equipos = await prisma.equipo.findMany({
+    where: {
+      capitan: {
+        isVerified: true // 🛡️ Solo equipos donde el capitán confirmó el correo
+      }
+    },
     include: {
       tablaPosiciones: {
         where: { torneoId: targetTorneoId },
@@ -128,17 +177,16 @@ export const getEquipoById = async (id: number) => {
 export const updateEquipoCompleto = async (equipoId: number, data: any) => {
   const { nombre, tag, logoUrl, jugadores } = data;
 
-// --- VALIDACIÓN DE TAG EN EDICIÓN ---
-if (tag) {
-  const cleanTag = tag.trim();
-  if (cleanTag.length < 2 || cleanTag.length > 3) {
-    throw { 
-      field: 'teamTag', 
-      message: 'El tag debe tener 2 o 3 caracteres. ¡Elige uno corto y potente! 🎮' 
-    };
+  // --- VALIDACIÓN DE TAG EN EDICIÓN ---
+  if (tag) {
+    const cleanTag = tag.trim();
+    if (cleanTag.length < 2 || cleanTag.length > 3) {
+      throw { 
+        field: 'teamTag', 
+        message: 'El tag debe tener 2 o 3 caracteres. ¡Elige uno corto y potente! 🎮' 
+      };
+    }
   }
-}
-  // ----------------------------------------
 
   return await prisma.$transaction(async (tx) => {
     // 1. VALIDACIÓN DE FECHA LÍMITE
@@ -167,21 +215,18 @@ if (tag) {
     // 3. LÓGICA UPSERT PARA JUGADORES
     if (jugadores && jugadores.length > 0) {
       for (const j of jugadores) {
-        // Si el nombre está vacío, no lo guardamos (opcional, según tu preferencia)
         if (!j.nombre || j.nombre.trim() === "") continue;
 
         if (j.id && !String(j.id).startsWith('temp')) {
-          // Si tiene un ID real, actualizamos
           await tx.jugador.update({
             where: { id: Number(j.id) },
             data: {
               nombre: j.nombre,
-              usuario: j.nombre, // Sincronizamos usuario con nombre
+              usuario: j.nombre,
               rol: j.rol 
             }
           });
         } else {
-          // Si NO tiene ID o es un ID temporal ("temp-..."), lo CREAMOS
           await tx.jugador.create({
             data: {
               nombre: j.nombre,

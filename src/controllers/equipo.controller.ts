@@ -2,6 +2,7 @@
 import type { Request, Response } from 'express';
 import { registerTeamAndCapitan, getTeamsWithPoints } from '../services/equipo.service.js';
 import { getEquipoById, updateEquipoCompleto } from '../services/equipo.service.js';
+import { prisma } from '../prismaClient.js';
 
 // ⚡ Crear equipo con Cloudinary
 export const crearEquipo = async (req: Request, res: Response) => {
@@ -99,5 +100,44 @@ export const editarMiEquipo = async (req: any, res: Response) => {
     console.error(error);
     // ⚡ Enviamos el error.message para que el 'alert' del frontend muestre el texto amigable
     res.status(400).json({ error: error.message || "Error al actualizar" });
+  }
+};
+// src/controllers/equipo.controller.ts
+
+export const confirmarEmail = async (req: Request, res: Response) => {
+  const { token } = req.query; // Obtiene el token de la URL (?token=...)
+
+  if (!token) return res.status(400).send("Falta el token de verificación.");
+
+  try {
+    // 1. Buscamos al usuario que tenga ese token
+    const usuario = await prisma.usuario.findFirst({
+      where: { verificationToken: String(token) }
+    });
+
+    if (!usuario) {
+      return res.status(404).send("El enlace es inválido o ya expiró.");
+    }
+
+    // 2. Lo marcamos como verificado y borramos el token para que no se use de nuevo
+    await prisma.usuario.update({
+      where: { id: usuario.id },
+      data: { 
+        isVerified: true, 
+        verificationToken: null 
+      }
+    });
+
+    // 3. Respuesta visual para el usuario
+    res.send(`
+      <div style="text-align:center; font-family:sans-serif; margin-top:50px;">
+        <h1>¡Email verificado correctamente! 🎮</h1>
+        <p>Tu equipo ya es oficial y aparecerá en la tabla del torneo.</p>
+        <p>Ya puedes cerrar esta ventana.</p>
+      </div>
+    `);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error al procesar la verificación.");
   }
 };
