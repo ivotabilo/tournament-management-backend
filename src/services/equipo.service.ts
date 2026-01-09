@@ -144,6 +144,7 @@ export const getTeamsWithPoints = async (torneoId?: number) => {
       }
     },
     include: {
+      jugadores: true, // ✅ Cambio solicitado: Se incluyen jugadores
       tablaPosiciones: {
         where: { torneoId: targetTorneoId },
         select: { puntos: true }
@@ -157,6 +158,7 @@ export const getTeamsWithPoints = async (torneoId?: number) => {
     tag: e.tag,
     logoUrl: e.logoUrl || null,
     points: e.tablaPosiciones.length > 0 ? e.tablaPosiciones[0].puntos : 0,
+    jugadores: e.jugadores, // ✅ Cambio solicitado: Se retornan los jugadores
   }));
 };
 
