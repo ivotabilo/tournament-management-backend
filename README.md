@@ -22,7 +22,7 @@ Servicio SMTP para verificación de email
 🧠 Arquitectura
 
 El backend está organizado en capas con separación clara de responsabilidades:
-
+```
 src/
  ├── controllers/
  ├── services/
@@ -30,7 +30,7 @@ src/
  ├── middlewares/
  ├── prismaClient.ts
  ├── server.ts
-
+```
 Responsabilidades
 
 Routes → Definición de endpoints.
@@ -146,15 +146,15 @@ Enums para control de estados.
 ⚙️ Instalación Local
 
 1️⃣ Clonar el repositorio:
-
+```
 git clone <repo-url>
 cd <project-folder>
-
+```
 
 2️⃣ Instalar dependencias:
-
+```
 npm install
-
+```
 
 3️⃣ Configurar variables de entorno:
 
@@ -171,9 +171,9 @@ CLOUDINARY_API_KEY
 CLOUDINARY_API_SECRET
 
 4️⃣ Ejecutar en desarrollo:
-
+```
 npm run dev
-
+```
 📌 Estado del Proyecto
 
 Proyecto personal en desarrollo activo enfocado en:
