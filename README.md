@@ -1,185 +1,155 @@
-🏆 E-Sport Tournament Management – Backend API
+# 🎮 Plataforma de Gestión de Torneos E-Sports
 
-API REST desarrollada para la gestión de torneos competitivos, equipos y estadísticas individuales.
-El foco principal del proyecto está en el modelado de dominio, reglas de negocio y arquitectura backend estructurada.
+---
 
-🚀 Stack Tecnológico
+## 🏗️ Descripción del Proyecto
 
-Node.js
+Este proyecto es un backend desarrollado con **Node.js + Express + TypeScript**, que utiliza **PostgreSQL (Neon Tech)** como base de datos y **Prisma ORM** para la gestión y modelado de datos.
 
-TypeScript
+La aplicación permite:
 
-Express
+- 👤 Gestión de usuarios con roles (ADMIN / CAPTAIN)
+- 🏆 Gestión de equipos
+- 🎮 Administración de torneos
+- 📊 Registro de partidos
+- 📈 Estadísticas individuales por jugador
+- 🏅 Tabla de posiciones automática
 
-Prisma ORM
+Cuenta con autenticación mediante hash de contraseñas, verificación de correo electrónico y control de acceso basado en roles.
 
-PostgreSQL (Neon)
+---
 
-Cloudinary (gestión de imágenes)
+## 🧰 Stack Tecnológico
 
-Servicio SMTP para verificación de email
+- Node.js
+- Express
+- TypeScript
+- Prisma ORM
+- PostgreSQL (Neon Tech)
+- Cloudinary (gestión de imágenes)
+- Vercel (deploy frontend)
 
-🧠 Arquitectura
+---
 
-El backend está organizado en capas con separación clara de responsabilidades:
-```
-src/
- ├── controllers/
- ├── services/
- ├── routes/
- ├── middlewares/
- ├── prismaClient.ts
- ├── server.ts
-```
-Responsabilidades
+## ⚡ Requisitos Previos
 
-Routes → Definición de endpoints.
+- Node.js >= 18
+- npm
+- PostgreSQL o cuenta en Neon Tech
 
-Controllers → Manejo de request y response.
+---
 
-Services → Lógica de negocio y reglas del dominio.
+## 🛠️ Instalación del Proyecto
 
-Middlewares → Autenticación y autorización.
+### 1️⃣ Clonar el repositorio
 
-Prisma Client → Acceso y persistencia de datos.
-
-Esta estructura permite mantener el código escalable, mantenible y desacoplado.
-
-🔐 Autenticación y Autorización
-
-Registro con verificación por email.
-
-Contraseñas almacenadas mediante hash seguro.
-
-Control de acceso basado en roles.
-
-Middleware de autorización por endpoint.
-
-Roles implementados
-
-ADMIN
-
-CAPTAIN
-
-Cada rol tiene permisos diferenciados dentro del sistema.
-
-🏗 Modelo de Dominio
-
-El sistema modela un entorno competitivo con reglas propias de torneos.
-
-Entidades principales
-
-Usuario
-
-Equipo
-
-Jugador
-
-Torneo
-
-Partido
-
-EstadisticaJugador
-
-TablaPosiciones
-
-Mapa
-
-Características del dominio
-
-Relación 1-1 entre capitán y equipo.
-
-Gestión de plantilla (titulares, suplentes y coach).
-
-Registro de partidos con equipos A/B y ganador.
-
-Snapshot de estadísticas individuales por partido.
-
-Cálculo de KDA.
-
-Tabla de posiciones por torneo.
-
-Estados controlados mediante enums.
-
-Reglas temporales:
-
-Fecha de cierre de inscripción.
-
-Fecha límite de gestión de equipo.
-
-Restricciones únicas compuestas para garantizar integridad.
-
-📡 API REST
-
-La API expone endpoints para:
-
-Autenticación y verificación de usuarios.
-
-Gestión de equipos.
-
-Gestión de jugadores.
-
-Administración de torneos.
-
-Registro de partidos.
-
-Cálculo y consulta de estadísticas.
-
-La autorización es validada en backend según el rol autenticado.
-
-🗄 Base de Datos
-
-Base de datos relacional en PostgreSQL utilizando Prisma ORM.
-
-Se aplican:
-
-Claves únicas.
-
-Relaciones explícitas.
-
-Restricciones compuestas.
-
-Integridad referencial.
-
-Enums para control de estados.
-
-⚙️ Instalación Local
-
-1️⃣ Clonar el repositorio:
-```
+```bash
 git clone <repo-url>
 cd <project-folder>
 ```
 
-2️⃣ Instalar dependencias:
-```
+### 2️⃣ Instalar dependencias
+
+```bash
 npm install
 ```
 
-3️⃣ Configurar variables de entorno:
+### 3️⃣ Configurar variables de entorno
 
-DATABASE_URL
+Crear un archivo `.env` en la raíz del proyecto:
 
-EMAIL_USER
+```env
+DATABASE_URL="postgresql://user:password@host:port/db"
+NEXT_PUBLIC_API_URL="http://localhost:3001"
 
-EMAIL_PASS
+EMAIL_USER=tu_email@gmail.com
+EMAIL_PASS=tu_password_de_aplicacion
 
-CLOUDINARY_CLOUD_NAME
-
-CLOUDINARY_API_KEY
-
-CLOUDINARY_API_SECRET
-
-4️⃣ Ejecutar en desarrollo:
+CLOUDINARY_CLOUD_NAME=xxxx
+CLOUDINARY_API_KEY=xxxx
+CLOUDINARY_API_SECRET=xxxx
 ```
+
+---
+
+## 🗄️ Migraciones con Prisma
+
+### Crear migración inicial
+
+```bash
+npx prisma migrate dev --name init
+```
+
+### Generar Prisma Client
+
+```bash
+npx prisma generate
+```
+
+### Resetear base de datos (si se modifica el schema)
+
+```bash
+npx prisma migrate reset
+```
+
+### Visualizar base de datos
+
+```bash
+npx prisma studio
+```
+
+---
+
+## 🚀 Ejecutar el Servidor
+
+```bash
 npm run dev
 ```
-📌 Estado del Proyecto
 
-Proyecto personal en desarrollo activo enfocado en:
+Servidor disponible en:
 
-Robustez de reglas de negocio.
+```bash
+http://localhost:3001
+```
 
-Mejora continua de arquitectura backend.
+---
 
-Evolución hacia una estructura escalable.
+## 🔐 Funcionalidades Implementadas
+
+- Registro y login de usuarios
+- Contraseñas hasheadas
+- Verificación de email
+- Control de acceso por roles
+- Gestión de equipos y jugadores
+- Registro de resultados de partidos
+- Cálculo automático de estadísticas (KDA)
+- Tabla de posiciones por torneo
+
+---
+
+## 🧠 Arquitectura del Proyecto
+
+Estructura organizada en capas:
+
+```bash
+src/
+ ├── controllers
+ ├── services
+ ├── routes
+ ├── middlewares
+ ├── prisma
+ ├── server.ts
+ └── index.ts
+```
+
+- **Controllers** → Manejo de requests y responses
+- **Services** → Lógica de negocio
+- **Middlewares** → Autenticación y autorización
+- **Prisma** → Acceso a datos
+
+---
+
+## 🌍 Estado del Proyecto
+
+Proyecto personal en desarrollo activo.
+Actualmente desplegado en entorno gratuito y orientado a práctica profesional en backend y arquitectura de sistemas.
