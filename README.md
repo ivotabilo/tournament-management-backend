@@ -1,5 +1,5 @@
 # 🎮 Plataforma de Gestión de Torneos E-Sports
-
+---
 ## 🏗️ Descripción del Proyecto
 
 Este proyecto es un backend desarrollado con **Node.js + Express + TypeScript**, que utiliza **PostgreSQL (Neon Tech)** como base de datos y **Prisma ORM** para la gestión y modelado de datos.
