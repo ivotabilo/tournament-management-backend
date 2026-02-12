@@ -1,5 +1,7 @@
 <p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
+  <img src="https://nodejs.org/static/images/logo.svg" width="120" />
+  <img src="https://www.typescriptlang.org/icons/icon-144x144.png" width="100" />
+  <img src="https://www.postgresql.org/media/img/about/press/elephant.png" width="120" />
 </p>
 
 # 🎮 Plataforma de Gestión de Torneos E-Sports
