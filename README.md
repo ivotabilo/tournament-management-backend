@@ -1,10 +1,11 @@
 <p align="center">
-  <img src="https://nodejs.org/static/images/logo.svg" width="120" />
-  <img src="https://www.typescriptlang.org/icons/icon-144x144.png" width="100" />
-  <img src="https://www.postgresql.org/media/img/about/press/elephant.png" width="120" />
+  <a href="https://nodejs.org/" target="_blank">
+    <img src="https://nodejs.org/static/images/logo.svg" width="140" alt="Node.js Logo" />
+  </a>
 </p>
 
-# 🎮 Plataforma de Gestión de Torneos E-Sports
+<h1 align="center">🎮 Plataforma de Gestión de Torneos E-Sports</h1>
+
 ---
 ## 🏗️ Descripción del Proyecto
 
