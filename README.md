@@ -26,13 +26,13 @@ Cuenta con autenticación mediante hash de contraseñas, verificación de correo
 
 ## 🧰 Stack Tecnológico
 
-- Node.js
-- Express
-- TypeScript
-- Prisma ORM
-- PostgreSQL (Neon Tech)
-- Cloudinary (gestión de imágenes)
-- Vercel (deploy frontend)
+- **Lenguaje:** TypeScript
+- **Runtime:** Node.js
+- **Framework:** Express
+- **ORM:** Prisma
+- **Base de Datos:** PostgreSQL (Docker / Neon Tech)
+- **Infraestructura:** Docker & Docker Compose
+- **Servicios Externos:** Cloudinary (Imágenes)
 
 ---
 
