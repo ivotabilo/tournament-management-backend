@@ -1,18 +1,31 @@
 services:
   app:
     build: .
+    container_name: torneo-api
     ports:
       - "3001:3001"
-    env_file:
-      - .env
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://admin:admin123@db:5432/torneo_db?schema=public
     depends_on:
       - db
+
   db:
     image: postgres:15-alpine
+    container_name: torneo-db
     restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 123
-      POSTGRES_DB: torneo
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin123
+      - POSTGRES_DB=torneo_db
+      - POSTGRES_HOST_AUTH_METHOD=trust
     ports:
-      - "5433:5432"
+      - "5499:5432" 
+    volumes:
+      - torneo_data_final:/var/lib/postgresql/data
+
+volumes:
+  torneo_data_final:
